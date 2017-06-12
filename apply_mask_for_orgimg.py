@@ -20,23 +20,24 @@ def apply_mask_kido(rgb_img, pool_img):
     rgb_img[:,:,1] = pool_img[:,:,2]*0.8
     return cv2.cvtColor(rgb_img, cv2.COLOR_HLS2RGB)
 
-def getFileList(orgpath, ppath, checkedpath, outpath):
+def getFileList(orgpath, ppath, outpath):
     for (root, dirs, files) in os.walk(orgpath):
         for file in files:
-            if os.path.exists(os.path.join(ppath,file)) and os.path.exists(os.path.join(checkedpath,file)):
+            if os.path.exists(os.path.join(ppath, file)):
                 print os.path.join(ppath,file)
                 orgimage = cv2.imread(os.path.join(orgpath,file))
                 pimage = cv2.imread(os.path.join(ppath,file))
                 orgimage=cv2.resize(orgimage,(224,224))
                 pimage=cv2.resize(pimage,(224,224))
-                maskedimg = apply_mask_kido(orgimage.astype('uint8'), cv2.cvtColor(pimage.astype('uint8').copy(), cv2.COLOR_BGR2HLS))
+                maskedimg = apply_mask(orgimage.astype('uint8'),
+                                            cv2.cvtColor(pimage.astype('uint8').copy(), cv2.COLOR_BGR2HLS))
                 cv2.imwrite(os.path.join(outpath,file), maskedimg)
 
 if __name__ == '__main__':
-    orgpath = "/media/minelab/ssd1/201608_sakigake_summer/201612_evaluate/pic"
-    ppath = "/media/minelab/ssd1/201608_sakigake_summer/untouchable_pool_rgb10"
-    checkedpath = "/media/minelab/ssd1/201608_sakigake_summer/201612_evaluate/cleaned_norm_pool_rgb10"
-    outpath = "/media/minelab/ssd1/201608_sakigake_summer/201612_evaluate/test"
-    getFileList(orgpath, ppath, checkedpath, outpath)
+    rootpath = "dataset"
+    orgpath = os.path.join(rootpath, "pic")
+    ppath = os.path.join(rootpath, "POF")
+    outpath = os.path.join(rootpath, "ROAF")
+    getFileList(orgpath, ppath, outpath)
     
      

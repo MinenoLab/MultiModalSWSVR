@@ -17,11 +17,11 @@ imsize = (280, 320)
 ksize = 10
 
 # define path
-data_root_path = '/home/minelab/2016_sakigake_summer/201612_evaluate'
+data_root_path = 'dataset'
 img_dir_path = os.path.join(data_root_path, 'pic')
-mag_dir_path = os.path.join(data_root_path, 'flow_mag10_part') # magnitude of optical flow (csv)
-ang_dir_path = os.path.join(data_root_path, 'flow_ang10_part') # angle of optical flow (csv)
-out_rgb_flow_path = os.path.join(data_root_path, 'pool10')
+mag_dir_path = os.path.join(data_root_path, 'flow_mag') # magnitude of optical flow (csv)
+ang_dir_path = os.path.join(data_root_path, 'flow_ang') # angle of optical flow (csv)
+out_rgb_flow_path = os.path.join(data_root_path, 'POF')
 
 @jit('f8[:](f8[:],f8[:,:],f8[:])')
 def tmp_func(target_max_val, anoter_cnl, target_max_idx):

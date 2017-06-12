@@ -1,0 +1,563 @@
+'''
+Created on 2015/10/07
+
+@author: Kaneda
+'''
+import sys
+import datetime
+import math
+import locale
+import time
+import datetime
+import Converter
+import time
+import numpy as np
+from sklearn.metrics import explained_variance_score, mean_absolute_error, mean_squared_error, median_absolute_error
+from sklearn.grid_search import ParameterGrid
+from numba.decorators import jit
+from sklearn.svm import SVR
+from sklearn.ensemble.forest import RandomForestRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.ensemble import AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import BaggingRegressor
+from sklearn.ensemble import GradientBoostingRegressor
+from multiprocessing import Pool, cpu_count, current_process
+from sklearn.linear_model import PassiveAggressiveRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVR
+from multiprocessing import Pool, cpu_count, current_process
+from sklearn.kernel_approximation import RBFSampler, Nystroem
+from sklearn.cross_decomposition import PLSRegression, PLSCanonical, CCA, PLSSVD
+from sklearn.gaussian_process import GaussianProcess
+from sklearn.grid_search import GridSearchCV
+
+#################################
+# methods related other methods #
+#################################
+
+class SimpleLearner:
+    #for tuning
+    all_params = {#'svr':{'C':[1, 10, 100], 'epsilon': [0.1, 0.01, 0.001], 'gamma': np.logspace(-5, -3, num=3)},
+'svr':{'C':[100], 'epsilon': [0.001], 'gamma':[0.00001]},
+                  'dt':{'max_depth': np.logspace(1, 15, num=15, base = 2), 'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'knn':{'n_neighbors': [int(x) for x in np.logspace(1, 7, num=7, base=2)] , 'algorithm' : ['ball_tree','kd_tree'], 'leaf_size':[int(x) for x in np.logspace(1, 10, num=10, base=2)]},
+                  'ad_svr':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)], 'learning_rate': np.logspace(-4, -1, num=4, base = 2), 'loss':['linear','square','exponential']},
+                  'ad_dt':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)], 'learning_rate': np.logspace(-4, -1, num=4, base = 2), 'loss':['linear','square','exponential']},
+                  'bg_svr':{'n_estimators': [int(x) for x in np.logspace(1, 1, num=1)],'max_samples': [x * 0.1 for x in range(1,11) if x%2 == 0],'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'bg_dt':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)],'max_samples': [x * 0.1 for x in range(1,11) if x%2 == 0],'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'bg_knn':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)],'max_samples': [x * 0.1 for x in range(1,11) if x%2 == 0],'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'gb':{'loss':['ls','huber'],'n_estimators': [int(x) for x in np.logspace(1, 2, num=2)], 'learning_rate': np.logspace(-4, -1, num=4, base = 2), 'max_depth': np.logspace(1, 4, num=4, base = 2)},
+                  'rf':{'n_estimators': [int(x) for x in np.logspace(1, 7, num=7, base=2)],'max_depth': np.logspace(1, 4, num=4, base = 2),'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'pa':{'C':[0.01, 0.1, 1, 10, 100],'epsilon': np.logspace(-3, 0, num=4),'n_iter': [1,5,10,20,100], 'loss':['epsilon_insensitive','squared_epsilon_insensitive']},
+                  'linearSVR':{'C':[1,2,4,8,16,32,64,128, 256, 512],'max_iter': [1000, 10000, 100000],'intercept_scaling':[1,2,4,8,16,32,64,128]}
+                  }
+    #for time estimation of SVR and linearSVR and GB and RF
+    """
+    all_params = {'svr':{'gamma': [0.1, 0.00001], 'C':[1]},
+                  'dt':{'max_depth': np.logspace(1, 15, num=15, base = 2), 'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'knn':{'n_neighbors': [int(x) for x in np.logspace(1, 10, num=10, base=2)] , 'algorithm' : ['ball_tree','kd_tree'], 'leaf_size':[int(x) for x in np.logspace(1, 10, num=10, base=2)]},
+                  'ad_svr':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)], 'learning_rate': np.logspace(-4, -1, num=4, base = 2), 'loss':['linear','square','exponential']},
+                  'ad_dt':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)], 'learning_rate': np.logspace(-4, -1, num=4, base = 2), 'loss':['linear','square','exponential']},
+                  'bg_svr':{'n_estimators': [int(x) for x in np.logspace(1, 1, num=1)],'max_samples': [x * 0.1 for x in range(1,11) if x%2 == 0],'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'bg_dt':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)],'max_samples': [x * 0.1 for x in range(1,11) if x%2 == 0],'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'bg_knn':{'n_estimators': [int(x) for x in np.logspace(1, 3, num=3)],'max_samples': [x * 0.1 for x in range(1,11) if x%2 == 0],'max_features': [x * 0.1 for x in range(1,11) if x%2 == 0]},
+                  'gb':{'n_estimators': [10, 1000],'max_depth': [5,10]},
+                  'rf':{'n_estimators': [10, 1000],'max_depth': [5,10]},
+                  'pa':{'C':[0.01, 0.1, 1, 10, 100],'epsilon': np.logspace(-3, 0, num=4),'n_iter': [1,5,10,20,100], 'loss':['epsilon_insensitive','squared_epsilon_insensitive']},
+                  'linearSVR':{'C':[1,5,10,50,100]}
+                  }
+    """
+    def __init__(self,name, model):
+        '''
+        Constructor
+        '''
+        self.name = name
+        self.model = model
+        self.result = []
+        self.time = 0
+        self.scaler = StandardScaler()
+
+    def fit(self, X, y):
+        start = time.clock()
+        self.model.fit(X,y)
+        self.time = time.clock() - start
+
+    def predict(self, X):
+        if self.name == "linearSVR" or self.name == "pa":
+            self.result = np.array(self.model.predict(self.scaler.transform(X)))
+        else:
+            self.result = np.array(self.model.predict(X))
+
+    def tuning(self, train_x, train_y, test_x, test_y):
+        params_grid = list(ParameterGrid(SimpleLearner.all_params[self.name]))
+        print "############",self.name,"############"
+        print "time, MAE(min), RMSE(ave), MAPE(ave),",
+        for k in params_grid[0].keys():
+            print k+",",
+        print ""
+        error_result = []
+        self.best_mae = 10000
+        self.best_rmse = 10000
+        self.best_mape = 10000
+        parallel_train_x = [train_x]*len(params_grid)
+        parallel_train_y = [train_y]*len(params_grid)
+        parallel_test_x = [test_x]*len(params_grid)
+        parallel_test_y = [test_y]*len(params_grid)
+        selfs = [self]*len(params_grid)
+        #p = Pool()
+        #result = p.map(parallel_method, zip(params_grid, parallel_train_x, parallel_train_y, parallel_test_x, parallel_test_y, selfs))
+        #p.close()
+        #For knn
+        result = map(parallel_method, zip(params_grid, parallel_train_x, parallel_train_y, parallel_test_x, parallel_test_y, selfs))
+        for res in result:
+            if self.best_mape > res[3]:
+                self.best_params = res[0]
+                self.best_mae = res[1]
+                self.best_rmse = res[2]
+                self.best_mape = res[3]
+        print_time("[TUNE RESULT:"+self.name+"] MAE:"+str(self.best_mae)+", RMSE:"+str(self.best_rmse)+", MAPE:"+str(self.best_mape)+", bestParams:"+str(self.best_params))
+        self.model.set_params(**self.best_params)
+        X = np.r_[train_x, test_x]
+        y = np.r_[train_y, test_y]
+        #self.model.fit(X, y)
+        return self
+
+    def tuning_repeat(self, train_x, train_y, test_x, test_y):
+        params_grid = list(ParameterGrid(SimpleLearner.all_params[self.name]))
+        print "############",self.name,"############"
+        error_result = []
+        self.best_mae = 10000
+        self.best_rmse = 10000
+        self.best_mape = 10000
+        parallel_train_x = [train_x]*len(params_grid)
+        parallel_train_y = [train_y]*len(params_grid)
+        parallel_test_x = [test_x]*len(params_grid)
+        parallel_test_y = [test_y]*len(params_grid)
+        selfs = [self]*len(params_grid)
+        p = Pool(3)
+        result = p.map(parallel_repeat_method, zip(params_grid, parallel_train_x, parallel_train_y, parallel_test_x, parallel_test_y, selfs))
+        p.close()
+        for res in result:
+            if self.best_mape > res[3]:
+                self.best_params = res[0]
+                self.best_mae = res[1]
+                self.best_rmse = res[2]
+                self.best_mape = res[3]
+        print_time("[TUNE RESULT:"+self.name+"] MAE:"+str(self.best_mae[0])+", RMSE:"+str(self.best_rmse[0])+", MAPE:"+str(self.best_mape[0])+", bestParams:"+str(self.best_params))
+        self.model.set_params(**self.best_params)
+        X = np.r_[train_x, test_x]
+        y = np.r_[train_y, test_y]
+        self.model.fit(X, y)
+        return self
+
+    def cross_validation(self, train_x, train_y, test_x, test_y):
+        params_grid = ParameterGrid(SimpleLearner.all_params[self.name])
+        reg = GridSearchCV(self.model, params_grid.param_grid, scoring=mean_absolute_percent_error, cv=10, n_jobs=-1)
+        reg.fit(train_x, train_y)
+        print "\n+ best params:\n"
+        print reg.best_estimator_
+        print "\n+ best score:\n"
+        print reg.best_score_ * (-1)
+        print"\n+ detail score:\n"
+        for params, mean_score, all_scores in reg.grid_scores_:
+            print "{:.3f} (std: {:.3f}) for {}".format(mean_score* (-1), all_scores.std(), params)
+
+def mean_absolute_percent_error(es, X, y_true):
+    y_pred = np.delete(es.predict(X), np.where(y_true==0), 0)
+    y_true = np.delete(y_true, np.where(y_true==0), 0)
+    tmp_mape = np.abs((y_true - y_pred) / y_true)
+    return np.mean(tmp_mape) * (-100)
+
+class PersistenceModel:
+    def __init__(self, object):
+        '''
+        Constructor
+        '''
+        self.object = object -1
+
+    def fit(self,X, y):
+        '''
+        Constructor
+        '''
+
+    def predict(self,X):
+        '''
+        Constructor
+        '''
+        return X[:,self.object]
+
+def parallel_method(list):
+    params = list[0]
+    train_x = list[1]
+    train_y = list[2]
+    test_x = list[3]
+    test_y = list[4]
+    me = list[5]
+    me.model.set_params(**params)
+    start_time = time.clock()
+    me.model.fit(train_x, train_y)
+    elapsed_time = (time.clock() - start_time)
+    tmp_mae, tmp_rmse, tmp_mape = metrics(test_y, me.model.predict(test_x))
+
+    print (str(elapsed_time)
+               +", "+str(tmp_mae)
+               +", "+str(tmp_rmse)
+               +", "+str(tmp_mape)
+               +", "),
+    for v in params.values():
+        print str(v)+",",
+    print ""
+
+    return params, tmp_mae, tmp_rmse, tmp_mape
+
+def parallel_repeat_method(list):
+    params = list[0]
+    train_x = list[1]
+    train_y = list[2]
+    test_x = list[3]
+    test_y = list[4]
+    me = list[5]
+    tmp_mae_list=[]
+    tmp_rmse_list=[]
+    tmp_mape_list=[]
+    for i in range(10):
+        me.model.set_params(**params)
+        me.model.fit(train_x, train_y)
+        tmp_mae, tmp_rmse, tmp_mape = metrics(test_y, me.model.predict(test_x))
+        tmp_mae_list.append(tmp_mae)
+        tmp_rmse_list.append(tmp_rmse)
+        tmp_mape_list.append(tmp_mape)
+    tmp_mae_list = np.array(tmp_mae_list)
+    tmp_rmse_list = np.array(tmp_rmse_list)
+    tmp_mape_list = np.array(tmp_mape_list)
+    condition = np.where(tmp_mape_list == np.min(tmp_mape_list))[0]
+    print (str(datetime.datetime.today().strftime("%Y-%m-%d %H:%M:%S"))
+               +", "+str(np.min(tmp_mape_list))
+               +", "+str(np.average(tmp_mape_list))
+               +", "+str(np.std(tmp_mape_list))
+               +", "),
+    for v in params.values():
+        print str(v)+",",
+    print ""
+    return params, tmp_mae_list[condition], tmp_rmse_list[condition], tmp_mape_list[condition]
+
+def other_learners_tuning(train_x, train_y, test_x, test_y):
+    scaler = StandardScaler().fit(train_x)
+    s_train_x = scaler.transform(train_x)
+    s_test_x = scaler.transform(test_x)
+
+    con = Converter.Converter()
+    kapp = Nystroem(gamma=0.00001, n_components=100)
+    con.learned_kapp = kapp.fit(s_train_x)
+    k_train_x = con.apply_kapp(s_train_x)
+    k_test_x = con.apply_kapp(s_test_x)
+    pls = PLSRegression(n_components=50)
+    con.learned_pls = pls.fit(k_train_x,train_y)
+    p_train_x = con.apply_pls(k_train_x)
+    p_test_x = con.apply_pls(k_test_x)
+
+    sys.stdout.flush()
+    simple_learners = []
+    #simple_learners.append(SimpleLearner("dt",DecisionTreeRegressor()).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("knn",KNeighborsRegressor()).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("ad_dt",AdaBoostRegressor(DecisionTreeRegressor(max_depth=4))).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("bg_dt",BaggingRegressor(DecisionTreeRegressor(max_depth=4))).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("rf",RandomForestRegressor()).tuning(train_x, train_y, test_x, test_y))
+    simple_learners.append(SimpleLearner("linearSVR",LinearSVR(dual=False, loss='squared_epsilon_insensitive')).tuning(s_train_x, train_y, s_test_x, test_y))
+    #simple_learners.append(SimpleLearner("svr",SVR()).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("gb",GradientBoostingRegressor()).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("pa",PassiveAggressiveRegressor()).tuning_repeat(s_train_x, train_y, s_test_x, test_y))
+    #simple_learners.append(SimpleLearner("bg_knn",BaggingRegressor(KNeighborsRegressor())).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("bg_svr",BaggingRegressor(SVR(kernel='linear',C=1.0, gamma=0, epsilon=0.1))).tuning(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("ad_svr",AdaBoostRegressor(SVR(kernel='linear',C=1.0, gamma=0, epsilon=0.1))).tuning(train_x, train_y, test_x, test_y))
+    return simple_learners
+
+def other_learners_CV(train_x, train_y, test_x, test_y):
+    scaler = StandardScaler().fit(train_x)
+    s_train_x = scaler.transform(train_x)
+    s_test_x = scaler.transform(test_x)
+
+    """
+    con = Converter.Converter()
+    kapp = Nystroem(gamma=0.00001, n_components=100)
+    con.learned_kapp = kapp.fit(s_train_x)
+    k_train_x = con.apply_kapp(s_train_x)
+    k_test_x = con.apply_kapp(s_test_x)
+    pls = PLSRegression(n_components=50)
+    con.learned_pls = pls.fit(k_train_x,train_y)
+    p_train_x = con.apply_pls(k_train_x)
+    p_test_x = con.apply_pls(k_test_x)
+    """
+
+    sys.stdout.flush()
+    simple_learners = []
+    #simple_learners.append(SimpleLearner("linearSVR",LinearSVR(dual=False, loss='squared_epsilon_insensitive')).cross_validation(s_train_x, train_y, s_test_x, test_y))
+    #simple_learners.append(SimpleLearner("pa",PassiveAggressiveRegressor()).cross_validation(s_train_x, train_y, s_test_x, test_y))
+    #simple_learners.append(SimpleLearner("dt",DecisionTreeRegressor()).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("knn",KNeighborsRegressor()).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("ad_dt",AdaBoostRegressor(DecisionTreeRegressor(max_depth=4))).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("bg_dt",BaggingRegressor(DecisionTreeRegressor(max_depth=4))).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("rf",RandomForestRegressor()).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("gb",GradientBoostingRegressor()).cross_validation(train_x, train_y, test_x, test_y))
+    simple_learners.append(SimpleLearner("svr",SVR()).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("bg_knn",BaggingRegressor(KNeighborsRegressor())).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("bg_svr",BaggingRegressor(SVR(kernel='linear',C=1.0, gamma=0, epsilon=0.1))).cross_validation(train_x, train_y, test_x, test_y))
+    #simple_learners.append(SimpleLearner("ad_svr",AdaBoostRegressor(SVR(kernel='linear',C=1.0, gamma=0, epsilon=0.1))).cross_validation(train_x, train_y, test_x, test_y))
+    return simple_learners
+
+def build_other_learners(train_x, train_y, prediction_object):
+    simple_learners = []
+    #simple_learners.append(SimpleLearner("svr",SVR(C=1, epsilon=0.1, gamma=0.1)).fit(train_x, train_y))
+    #simple_learners.append(SimpleLearner("ad_svr",AdaBoostRegressor(SVR()).fit(train_x, train_y)))
+    #simple_learners.append(SimpleLearner("bg_svr",BaggingRegressor(SVR()).fit(train_x, train_y)))
+    #simple_learners.append(SimpleLearner("dt",DecisionTreeRegressor(max_features=1, max_depth=8)))
+    #simple_learners.append(SimpleLearner("knn",KNeighborsRegressor(n_neighbors=4,leaf_size=512,algorithm='kd_tree')))
+    #simple_learners.append(SimpleLearner("ad_dt",AdaBoostRegressor(n_estimators=10,loss= 'exponential',learning_rate=0.0625,base_estimator=DecisionTreeRegressor())))
+    #simple_learners.append(SimpleLearner("bg_dt",BaggingRegressor(max_features=1,max_samples=0.2,n_estimators=10,base_estimator=DecisionTreeRegressor())))
+    #simple_learners.append(SimpleLearner("bg_knn",BaggingRegressor(max_features=1,max_samples=0.8,n_estimators=100,base_estimator=KNeighborsRegressor())))
+    #simple_learners.append(SimpleLearner("gb",GradientBoostingRegressor(n_estimators=1000, loss='huber', learning_rate=0.25, max_depth=5)))
+    #simple_learners.append(SimpleLearner("rf",RandomForestRegressor(n_jobs=-1, max_features=1,n_estimators=1000, max_depth=10)))
+    #simple_learners.append(SimpleLearner("pa",PassiveAggressiveRegressor(epsilon=0.01,C=0.01,n_iter=10,loss='epsilon_insensitive')))
+    #simple_learners.append(SimpleLearner("linearSVR",LinearSVR(dual=False, loss='squared_epsilon_insensitive')))
+    simple_learners.append(SimpleLearner("persistence",PersistenceModel(prediction_object)))
+    for sl in simple_learners:
+        if sl.name == "linearSVR" or sl.name == "pa":
+            sl.scaler.fit(train_x)
+            s_train_x = sl.scaler.transform(train_x)
+            sl.fit(s_train_x,train_y)
+        else:
+            sl.fit(train_x,train_y)
+        print sl.name+": buiding is finished."
+    return simple_learners
+
+#######################
+# method related Time #
+#######################
+
+def print_time(str):
+    d = datetime.datetime.today()
+    print '%s, %s' % (d, str)
+    sys.stdout.flush()
+
+def convert_unixtime(str):
+    return int(time.mktime(str.timetuple()))
+
+def convert_datetime(unixtime):
+    return datetime.datetime.fromtimestamp(unixtime)
+
+def is_passed(current, limit):
+    current_unixtime = convert_unixtime(current)
+    limit_unixtime = convert_unixtime(limit)
+    if current_unixtime > limit_unixtime:
+        return True
+    else:
+        return False
+
+def advance(str, min=0):
+    unixtime = convert_unixtime(str)
+    unixtime += min * 60
+    return convert_datetime(unixtime)
+
+##########################
+# method related metrics #
+##########################
+
+def metrics(y_true, y_pred, is_print = False):
+    if is_print:
+        #print "#####Regression Metrics#####"
+        print "MAE",mean_absolute_error(y_true, y_pred)
+        print "RMSE:",math.sqrt(mean_squared_error(y_true, y_pred))
+    y_pred = np.delete(y_pred, np.where(y_true==0), 0)
+    y_true = np.delete(y_true, np.where(y_true==0), 0)
+    tmp_mape = np.abs((y_true - y_pred) / y_true)
+    if is_print:
+        print "MAPE:",np.mean(tmp_mape) * 100
+    return mean_absolute_error(y_true, y_pred), math.sqrt(mean_squared_error(y_true, y_pred)), np.mean(tmp_mape) * 100
+
+##############################
+# method related calculation #
+##############################
+
+@jit('f8(f8[:],f8[:])')
+def cal_weighted_average(vector, weight_vector):
+    return np.average(vector,weights=weight_vector)
+
+@jit('f8(f8[:],f8[:])')
+def calc_euclid(A, B):
+    '''
+    Args:
+        features: numpy
+    '''
+    return np.linalg.norm(A - B)
+
+@jit('f8[:](f8[:],f8)')
+def calc_reciprocal(double, weight_param):
+    '''
+    This method calc weight from a double value.
+    '''
+    denominator = np.power(double, weight_param)
+    index = np.where(denominator == 0)[0]
+    for i in index:# double(arg1) has some zero
+        denominator[i] = np.min(denominator[np.where(denominator>0)])
+    denominator = np.reciprocal(denominator)
+
+    return denominator
+
+@jit('f8[:](f8[:,:],f8[:,:])')
+def calc_euclid_matrix(from_data, to_data):
+    '''
+    This method calculates euclid distances for matrix.
+    Parameters must be FeaturesData class.
+    '''
+    return np.linalg.norm((from_data - to_data), axis=1)
+
+###############################
+# method related yklearn tuning #
+###############################
+
+def grid_tuning(params, sdc_data, test_data, sdc_data_for_final_training):
+    from swsvr.SlidingWindowBasedSVR import SlidingWindowBasedSVR
+
+    params_grid = list(ParameterGrid(params))
+    best_mae = 10000
+    best_rmse = 10000
+    best_mape = 10000
+    print "\nIndex, Time, MAPE(min), MAPE(ave), MAPE(std),",
+    for k in params_grid[0].keys():
+        print k+",",
+    print ""
+    swsvr = SlidingWindowBasedSVR()
+    for (index, params) in enumerate(params_grid):
+        tmp_mae_list=[]
+        tmp_rmse_list=[]
+        tmp_mape_list=[]
+        progress=0
+        for i in range(1):
+            swsvr.init(svr_cost=params["svr_cost"], svr_epsilon=params["svr_epsilon"],svr_intercept=params["svr_intercept"],svr_itr=params["svr_itr"],
+                                kapp_gamma=params["kapp_gamma"], kapp_num=params["kapp_num"],
+                                pls_compnum=params["pls_compnum"],
+                                sdc_weight=params["sdc_weight"], predict_weight=params["predict_weight"],
+                                lower_limit=params["lower_limit"],
+                                n_estimators=params["n_estimators"])
+            start = time.clock()
+            swsvr.train(sdc_data)
+            progress = time.clock() - start
+            swsvr_result = swsvr.predict(test_data.X)
+            tmp_mae, tmp_rmse, tmp_mape = metrics(test_data.y, swsvr_result)
+            tmp_mae_list.append(tmp_mae)
+            tmp_rmse_list.append(tmp_rmse)
+            tmp_mape_list.append(tmp_mape)
+        tmp_mae_list = np.array(tmp_mae_list)
+        tmp_rmse_list = np.array(tmp_rmse_list)
+        tmp_mape_list = np.array(tmp_mape_list)
+        condition = np.where(tmp_mape_list == np.min(tmp_mape_list))[0]
+        print (str(index)
+               +", "+str(progress)
+               +", "+str(np.min(tmp_mape_list))
+               +", "+str(np.average(tmp_mape_list))
+               +", "+str(np.std(tmp_mape_list))
+               +", "),
+        for v in params.values():
+            print str(v)+",",
+        print ""
+        sys.stdout.flush()
+        if best_mape > np.min(tmp_mape_list):
+            best_params = params
+            best_mae = tmp_mae_list[condition][0]
+            best_rmse = tmp_rmse_list[condition][0]
+            best_mape = tmp_mape_list[condition][0]
+    #swsvr._pool_close() #when swsvr run with single process, error appear
+    #Tune is finished
+    print_time("[TUNE RESULT] MAE:"+str(best_mae)
+                   +" RMSE:"+str(best_rmse)
+                   +" MAPE:"+str(best_mape)
+                   +"::"+ str(best_params))
+    best_swsvr = SlidingWindowBasedSVR(svr_cost=best_params["svr_cost"], svr_epsilon=best_params["svr_epsilon"],svr_intercept=best_params["svr_intercept"],svr_itr=best_params["svr_itr"],
+                             kapp_gamma=best_params["kapp_gamma"], kapp_num=best_params["kapp_num"],
+                             pls_compnum=params["pls_compnum"],
+                             sdc_weight=best_params["sdc_weight"], predict_weight=best_params["predict_weight"],
+                             lower_limit=best_params["lower_limit"],
+                             n_estimators=params["n_estimators"])
+    best_swsvr.train(sdc_data_for_final_training)
+    return best_swsvr
+
+def grid_tuning_cv(params, sdc_data, cv):
+    import swsvr.DataStructure as ds
+
+    from swsvr.SlidingWindowBasedSVR import SlidingWindowBasedSVR
+    from sklearn.cross_validation import KFold
+
+    params_grid = list(ParameterGrid(params))
+    kf = KFold(len(sdc_data.pre_y), n_folds = cv)
+    best_mae = 10000
+    best_rmse = 10000
+    best_mape = 10000
+    print "\nIndex, Time, MAPE(min), MAPE(ave), MAPE(std),",
+    for k in params_grid[0].keys():
+        print k+",",
+    print ""
+    swsvr = SlidingWindowBasedSVR()
+    for (index, params) in enumerate(params_grid):
+        tmp_mae_list=[]
+        tmp_rmse_list=[]
+        tmp_mape_list=[]
+        progress=0
+        for train_index, test_index in kf:
+            swsvr.init(svr_cost=params["svr_cost"], svr_epsilon=params["svr_epsilon"],svr_intercept=params["svr_intercept"],svr_itr=params["svr_itr"],
+                                kapp_gamma=params["kapp_gamma"], kapp_num=params["kapp_num"],
+                                pls_compnum=params["pls_compnum"],
+                                sdc_weight=params["sdc_weight"], predict_weight=params["predict_weight"],
+                                lower_limit=params["lower_limit"],
+                                n_estimators=params["n_estimators"])
+            start = time.clock()
+
+            #convert train index and test index
+            train_fol_X=sdc_data.fol_X[train_index]
+            train_pre_X=sdc_data.pre_X[train_index]
+            train_pre_y=sdc_data.pre_y[train_index]
+            train_sdc_data=ds.SdcData(train_pre_X, train_pre_y, train_fol_X)
+            test_fol_X=sdc_data.fol_X[test_index]
+            test_pre_X=sdc_data.pre_X[test_index]
+            test_pre_y=sdc_data.pre_y[test_index]
+            test_sdc_data=ds.SdcData(test_pre_X, test_pre_y, test_fol_X)
+
+            swsvr.train(train_sdc_data) #TODO fix
+            progress = time.clock() - start
+            swsvr_result = swsvr.predict(test_sdc_data.pre_X)
+            tmp_mae, tmp_rmse, tmp_mape = metrics(test_sdc_data.pre_y, swsvr_result)
+            tmp_mae_list.append(tmp_mae)
+            tmp_rmse_list.append(tmp_rmse)
+            tmp_mape_list.append(tmp_mape)
+        tmp_mae_list = np.array(tmp_mae_list)
+        tmp_rmse_list = np.array(tmp_rmse_list)
+        tmp_mape_list = np.array(tmp_mape_list)
+        condition = np.where(tmp_mape_list == np.min(tmp_mape_list))[0]
+        print (str(index)
+               +", "+str(progress)
+               +", "+str(np.min(tmp_mape_list))
+               +", "+str(np.average(tmp_mape_list))
+               +", "+str(np.std(tmp_mape_list))
+               +", "),
+        for v in params.values():
+            print str(v)+",",
+        print ""
+        sys.stdout.flush()
+        if best_mape > np.min(tmp_mape_list):
+            best_params = params
+            best_mae = tmp_mae_list[condition][0]
+            best_rmse = tmp_rmse_list[condition][0]
+            best_mape = tmp_mape_list[condition][0]
+    #swsvr._pool_close() #when swsvr run with single process, error appear
+    #Tune is finished
+    print_time("[TUNE RESULT] MAE:"+str(best_mae)
+                   +" RMSE:"+str(best_rmse)
+                   +" MAPE:"+str(best_mape)
+                   +"::"+ str(best_params))
+    best_swsvr = SlidingWindowBasedSVR(svr_cost=best_params["svr_cost"], svr_epsilon=best_params["svr_epsilon"],svr_intercept=best_params["svr_intercept"],svr_itr=best_params["svr_itr"],
+                             kapp_gamma=best_params["kapp_gamma"], kapp_num=best_params["kapp_num"],
+                             pls_compnum=params["pls_compnum"],
+                             sdc_weight=best_params["sdc_weight"], predict_weight=best_params["predict_weight"],
+                             lower_limit=best_params["lower_limit"],
+                             n_estimators=params["n_estimators"])
+    return best_swsvr
