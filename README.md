@@ -13,7 +13,7 @@ chainer: <https://github.com/chainer/>
 ## Usage
 
 step.1: download sample dataset and rename the directory name to "dataset"
-<http://www.mizulab.net/public_data/plant_wilt_sample.tar.gz>
+<http://www.minelab.jp/public_data/plant_wilt_sample.tar.gz>
 
 step.2: make pooled optical flow from optical flow
 ```
