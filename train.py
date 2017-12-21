@@ -30,7 +30,7 @@ def init_args():
     parser.add_argument('--out_path', type=str, default='./result')
 
     # setting parameters
-    parser.add_argument('--n_epoch', type=int, default=1)
+    parser.add_argument('--n_epoch', type=int, default=100)
     parser.add_argument('--learning_rate_decay', type=float, default=0.97)
     parser.add_argument('--learning_rate_decay_after', type=int, default=10)
     parser.add_argument('--decay_rate', type=float, default=0.95)
