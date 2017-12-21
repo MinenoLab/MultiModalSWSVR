@@ -6,7 +6,7 @@ This is the implementation for machine learning algorithm "Multi-modal SW-SVR"
 
 ## Requirement
 
-Python2.7
+Python2.7  
 chainer: https://github.com/chainer/
 
 ## Usage
