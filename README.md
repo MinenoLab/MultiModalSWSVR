@@ -1,11 +1,12 @@
 # Multi-modal SW-SVR
-====
+
 ## Overview
 
 This is the implementation for machine learning algorithm "Multi-modal SW-SVR"
 
 ## Requirement
 
+Python2.7
 chainer: https://github.com/chainer/
 
 ## Usage
@@ -16,19 +17,19 @@ step.1: download sample dataset and rename the directory name to "dataset"
 step.2: make pooled optical flow from optical flow
 
 ```
-python temporal_pooling.py
+$ python temporal_pooling.py
 ```
 
 step.3: make ROAF by applying pooled optical flow to original image using for calculating optical flow
 
 ```
-python apply_mask_for_orgimg.py
+$ python apply_mask_for_orgimg.py
 ```
 
 step.4: train Multi-modal SW-SVR
 
 ```
-python train.py
+$ python train.py
 ```
 
 ## References
