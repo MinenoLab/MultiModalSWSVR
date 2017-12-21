@@ -313,9 +313,12 @@ def main(dp, hps, args, root_dir, x_train, y_train, x_valid, y_valid, train_sens
     '''
          
 if __name__=='__main__':
-    
     # initialize params    
     args = init_args()
+
+    if not os.path.exists("/".join(args.tuned_model.split("/")[:-1])):
+        os.makedirs("/".join(args.tuned_model.split("/")[:-1]))
+
     
     # load train data, validation data, test data
     dp = init_data_params()
@@ -324,7 +327,8 @@ if __name__=='__main__':
     # make directory for each tuning
     root_dir = os.path.join(args.out_path, pname)
     if not os.path.exists(root_dir):
-        os.mkdir(root_dir)
+        #os.mkdir(root_dir)
+        os.makedirs(root_dir)
     
     # write parameter at this tune
     with open(os.path.join(root_dir, 'params.txt'), 'w') as f:
