@@ -30,7 +30,7 @@ def init_args():
     parser.add_argument('--out_path', type=str, default='./result')
 
     # setting parameters
-    parser.add_argument('--n_epoch', type=int, default=10)
+    parser.add_argument('--n_epoch', type=int, default=1)
     parser.add_argument('--learning_rate_decay', type=float, default=0.97)
     parser.add_argument('--learning_rate_decay_after', type=int, default=10)
     parser.add_argument('--decay_rate', type=float, default=0.95)
@@ -286,7 +286,7 @@ def main(dp, hps, args, root_dir, x_train, y_train, x_valid, y_valid, train_sens
                     optimizer.lr *= args.learning_rate_decay
                 else:
                     pass
-    
+    '''
     # evaluate test data
     test_errors = Errors()
     py = evaluate(hps, model, x_test, test_sensors, y_test, args.is_sensor)
@@ -304,12 +304,13 @@ def main(dp, hps, args, root_dir, x_train, y_train, x_valid, y_valid, train_sens
     plt.savefig(os.path.join(graph_dir, "test.jpg"))
 
     plt.close('all')
-    
+
     # save hyperparameters and rmse to csv
     with open(errors_csv, 'a+') as f:
         writer = csv.writer(f)
         body = vars(hps).values() + train_errors.get_last_errors() + valid_errors.get_last_errors() + test_errors.get_last_errors()
         writer.writerow(body)
+    '''
          
 if __name__=='__main__':
     
@@ -319,7 +320,7 @@ if __name__=='__main__':
     # load train data, validation data, test data
     dp = init_data_params()
     pname, x_train, y_train, x_valid, y_valid, train_sensors, valid_sensors, train_ar, train_dt, valid_ar, valid_dt = load_data(dp)
-    
+
     # make directory for each tuning
     root_dir = os.path.join(args.out_path, pname)
     if not os.path.exists(root_dir):

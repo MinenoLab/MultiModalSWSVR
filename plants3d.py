@@ -204,6 +204,7 @@ class PLANTS():
         check_path = []
         for i in range(0, len(area)):
             check_path.append(str(area[i])+"_"+str(date[i])+"_"+str(time[i])+".jpg")
+
         sensors_data = []
         for sname in sensors_name:
             sensors_data.append(RSD[str(sname)])
@@ -223,7 +224,6 @@ class PLANTS():
             pic1_path = [os.path.join(os.path.abspath(path), target[0], x) for x in check_path]
             pic2_path = [os.path.join(os.path.abspath(path), target[1], x) for x in check_path]
             pic3_path = [os.path.join(os.path.abspath(path), target[2], x) for x in check_path]
-
 
         ### calc maxcount ###
         allDateAndTimeEveryArea = [[],[],[],[],[],[],[],[],[],[],[],[],[]]
