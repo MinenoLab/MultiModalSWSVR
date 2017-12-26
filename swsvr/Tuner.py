@@ -1,7 +1,7 @@
 import sys
 import numpy as np
 import time
-from sklearn.grid_search import ParameterGrid
+from sklearn.model_selection import ParameterGrid
 from sklearn.svm import SVR
 from sklearn.ensemble.forest import RandomForestRegressor
 from sklearn.neighbors import KNeighborsRegressor
@@ -17,7 +17,7 @@ from multiprocessing import Pool, cpu_count, current_process
 from sklearn.kernel_approximation import RBFSampler, Nystroem
 from sklearn.cross_decomposition import PLSRegression, PLSCanonical, CCA, PLSSVD
 from sklearn.gaussian_process import GaussianProcess
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.base import BaseEstimator, RegressorMixin
 import copy
 from utility.metrics import get_rmse, get_mape, get_mae, get_rae, get_rse, get_mse
