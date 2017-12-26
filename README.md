@@ -5,9 +5,9 @@
 This is the implementation for machine learning algorithm "Multi-modal SW-SVR"
 
 ## Requirement
-Python 2.7.12 :: Anaconda custom (64-bit)
-chainer ver.1.19.0
-Scikit-learn ver.0.18.1
+Python 2.7.12 :: Anaconda custom (64-bit)  
+chainer ver.1.19.0  
+Scikit-learn ver.0.18.1  
 
 ## Usage
 
