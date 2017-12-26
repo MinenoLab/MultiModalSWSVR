@@ -33,5 +33,5 @@ $ python train.py
 ```
 
 ## References
-[1] Kaneda, Y., Shibata S. & Mineno, H.: Multi-modal sliding window-based support vector regression for predicting plant water stress, Knowledge-based Systems (KNOSYS), pp. 135-148, doi:10.1016/j.knosys.2017.07.028  
-[1] Kaneda, Y. & Mineno, H.: Sliding window-based support vector regression for predicting micrometeorological data. Expert System with Application, 59, 217?225. http://doi.org/10.1016/j.eswa.2016.04.012 
+[1] Kaneda, Y., Shibata S. & Mineno, H.: Multi-modal sliding window-based support vector regression for predicting plant water stress, Knowledge-based Systems (KNOSYS), pp. 135-148, http://doi:10.1016/j.knosys.2017.07.028  
+[2] Kaneda, Y. & Mineno, H.: Sliding window-based support vector regression for predicting micrometeorological data. Expert System with Application, 59, 217?225. http://doi.org/10.1016/j.eswa.2016.04.012 
