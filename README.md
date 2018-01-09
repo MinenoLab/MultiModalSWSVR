@@ -32,6 +32,10 @@ step.4: train Multi-modal SW-SVR
 $ python train.py
 ```
 
+## Demo
+![Demo](https://user-images.githubusercontent.com/10162931/34709936-b08fad72-f55c-11e7-828e-7f64210cd1dc.png)
+
+
 ## References
 [1] Kaneda, Y., Shibata S. & Mineno, H.: Multi-modal sliding window-based support vector regression for predicting plant water stress, Knowledge-based Systems (KNOSYS), pp. 135-148, https://doi.org/10.1016/j.knosys.2017.07.028  
 [2] Kaneda, Y. & Mineno, H.: Sliding window-based support vector regression for predicting micrometeorological data. Expert System with Application, 59, 217?225. http://doi.org/10.1016/j.eswa.2016.04.012 
