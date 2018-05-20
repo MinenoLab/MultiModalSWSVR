@@ -11,8 +11,8 @@ Scikit-learn ver.0.18.1
 
 ## Usage
 
-* step.1: download sample dataset and rename the directory name to "dataset"
-The dataset includes partial data of a dataset that has been used in an article.
+* step.1: download sample dataset and rename the directory name to "dataset"  
+The dataset includes partial data of a dataset that has been used in an article.  
 <http://www.minelab.jp/public_data/plant_wilt_sample.tar.gz> (1.8GB)
 
 * step.2: make pooled optical flow from optical flow
