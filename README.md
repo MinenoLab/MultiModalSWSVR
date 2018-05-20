@@ -35,7 +35,7 @@ $ python train.py
 
 ## Demo
 ![multimodalswsvr](https://user-images.githubusercontent.com/9291685/40279778-7a09cad8-5c83-11e8-8bc1-d9f7fad66b15.png)
-NOTE: This is a demonstration using the data used in an article[1].  When using the above sample data, it will be visualized in less number of data points than this demonstration.
+NOTE: This is a demonstration using a dataset used in an article[1].  When using the above sample dataset, it will be visualized in less number of data points than this demonstration.
 
 ## References
 [1] Kaneda, Y., Shibata S. & Mineno, H.: Multi-modal sliding window-based support vector regression for predicting plant water stress, Knowledge-based Systems (KNOSYS), pp. 135-148, https://doi.org/10.1016/j.knosys.2017.07.028  
